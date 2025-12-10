@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,6 +36,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="bg-gray-900 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-800">
+        <Link href="/" className="block mb-6">
+          <Logo />
+        </Link>
         <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
         <p className="text-gray-400 mb-6">Sign in to continue to Fractalater</p>
 

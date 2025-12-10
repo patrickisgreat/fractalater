@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
 
 interface Fractal {
   id: string;
@@ -74,8 +75,8 @@ export default function GalleryPage() {
       {/* Header */}
       <header className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-xl font-bold text-white">
-            Fractalater
+          <Link href="/">
+            <Logo />
           </Link>
           <span className="text-gray-500">/</span>
           <span className="text-gray-300">My Fractals</span>

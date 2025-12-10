@@ -6,6 +6,7 @@ import Link from "next/link";
 import FractalCanvas from "./FractalCanvas";
 import FractalControls from "./FractalControls";
 import SaveModal from "./SaveModal";
+import Logo from "./Logo";
 import { FractalParams, DEFAULT_FRACTAL_PARAMS } from "@/types/fractal";
 
 interface FractalEditorProps {
@@ -159,8 +160,8 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
       {/* Header */}
       <header className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-xl font-bold text-white">
-            Fractalater
+          <Link href="/">
+            <Logo />
           </Link>
           <span className="text-gray-500 text-sm">
             {params.type.charAt(0).toUpperCase() + params.type.slice(1)} Set
