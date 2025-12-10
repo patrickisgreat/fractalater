@@ -68,7 +68,7 @@ export default function FractalControls({
   const SectionHeader = ({ section, title }: { section: Section; title: string }) => (
     <button
       onClick={() => toggleSection(section)}
-      className="flex items-center justify-between w-full text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider hover:text-gray-300 py-1 -my-1 touch-manipulation"
+      className="flex items-center justify-between w-full text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider hover:text-gray-300 py-1 -my-1 touch-manipulation"
     >
       {title}
       <span className="text-lg w-8 h-8 flex items-center justify-center">{expandedSections.has(section) ? "−" : "+"}</span>
