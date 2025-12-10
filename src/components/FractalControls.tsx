@@ -42,7 +42,7 @@ const COLORING_METHODS: { value: ColoringMethod; label: string; description: str
   { value: "domain", label: "Domain", description: "Final angle coloring" },
 ];
 
-type Section = "fractal" | "iteration" | "julia" | "view" | "coloring" | "effects" | "animation";
+type Section = "fractal" | "iteration" | "julia" | "view" | "coloring" | "effects" | "animation" | "learn";
 
 export default function FractalControls({
   params,
@@ -753,6 +753,14 @@ export default function FractalControls({
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Learn Section */}
+      <div className="mb-4">
+        <SectionHeader section="learn" title="Learn" />
+        {expandedSections.has("learn") && (
+          <FractalLearn params={params} />
         )}
       </div>
 
