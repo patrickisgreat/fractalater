@@ -78,13 +78,13 @@ export const DEFAULT_FRACTAL_PARAMS: FractalParams = {
   animateJulia: false,
   juliaAnimSpeed: 1,
   autoZoom: false,
-  autoZoomSpeed: 0.5,
+  autoZoomSpeed: 0.02,
   autoRotate: false,
-  autoRotateSpeed: 0.2,
+  autoRotateSpeed: 0.02,
   autoHueShift: false,
-  autoHueSpeed: 0.1,
+  autoHueSpeed: 0.02,
   autoPower: false,
-  autoPowerSpeed: 0.3,
+  autoPowerSpeed: 0.02,
   globalAnimSpeed: 1,
 };
 

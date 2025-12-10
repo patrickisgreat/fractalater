@@ -68,16 +68,16 @@ export default function FractalControls({
   const SectionHeader = ({ section, title }: { section: Section; title: string }) => (
     <button
       onClick={() => toggleSection(section)}
-      className="flex items-center justify-between w-full text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider hover:text-gray-300"
+      className="flex items-center justify-between w-full text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider hover:text-gray-300 py-1 -my-1 touch-manipulation"
     >
       {title}
-      <span className="text-lg">{expandedSections.has(section) ? "−" : "+"}</span>
+      <span className="text-lg w-8 h-8 flex items-center justify-center">{expandedSections.has(section) ? "−" : "+"}</span>
     </button>
   );
 
   return (
-    <div className="bg-gray-900 border-l border-gray-800 p-4 w-80 overflow-y-auto">
-      <h2 className="text-lg font-semibold text-white mb-4">Fractal Controls</h2>
+    <div className="bg-gray-900 md:border-l border-gray-800 p-3 md:p-4 w-full md:w-80 overflow-y-auto max-h-[calc(70vh-2rem)] md:max-h-none">
+      <h2 className="text-lg font-semibold text-white mb-4 hidden md:block">Fractal Controls</h2>
 
       {/* Fractal Type */}
       <div className="mb-4">
@@ -87,7 +87,7 @@ export default function FractalControls({
             <select
               value={params.type}
               onChange={(e) => onParamsChange({ type: e.target.value as FractalType })}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              className="w-full px-3 py-3 md:py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 text-base md:text-sm"
             >
               {FRACTAL_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -290,7 +290,7 @@ export default function FractalControls({
               <select
                 value={params.colorScheme}
                 onChange={(e) => onParamsChange({ colorScheme: e.target.value as ColorScheme })}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-3 md:py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 text-base md:text-sm"
               >
                 {COLOR_SCHEMES.map((scheme) => (
                   <option key={scheme.value} value={scheme.value}>
@@ -305,7 +305,7 @@ export default function FractalControls({
               <select
                 value={params.coloringMethod}
                 onChange={(e) => onParamsChange({ coloringMethod: e.target.value as ColoringMethod })}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-3 md:py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 text-base md:text-sm"
               >
                 {COLORING_METHODS.map((method) => (
                   <option key={method.value} value={method.value}>
@@ -707,8 +707,8 @@ export default function FractalControls({
                 <button
                   onClick={() => onParamsChange({
                     autoZoom: true,
-                    autoZoomSpeed: 0.3,
-                    colorCycleSpeed: 0.2,
+                    autoZoomSpeed: 0.03,
+                    colorCycleSpeed: 0.05,
                     autoHueShift: false,
                   })}
                   className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
@@ -718,9 +718,9 @@ export default function FractalControls({
                 <button
                   onClick={() => onParamsChange({
                     autoZoom: false,
-                    colorCycleSpeed: 0.5,
+                    colorCycleSpeed: 0.1,
                     autoHueShift: true,
-                    autoHueSpeed: 0.1,
+                    autoHueSpeed: 0.03,
                   })}
                   className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
                 >
@@ -729,10 +729,10 @@ export default function FractalControls({
                 <button
                   onClick={() => onParamsChange({
                     autoZoom: true,
-                    autoZoomSpeed: 0.5,
+                    autoZoomSpeed: 0.05,
                     autoHueShift: true,
-                    autoHueSpeed: 0.15,
-                    colorCycleSpeed: 0.3,
+                    autoHueSpeed: 0.03,
+                    colorCycleSpeed: 0.08,
                   })}
                   className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
                 >
@@ -770,7 +770,7 @@ export default function FractalControls({
           <button
             onClick={onSave}
             disabled={isSaving}
-            className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-medium rounded-lg transition"
+            className="w-full py-3 md:py-2 px-4 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 disabled:bg-purple-600/50 text-white font-medium rounded-lg transition touch-manipulation"
           >
             {isSaving ? "Saving..." : "Save Fractal"}
           </button>
@@ -778,15 +778,15 @@ export default function FractalControls({
         {onReset && (
           <button
             onClick={onReset}
-            className="w-full py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition"
+            className="w-full py-3 md:py-2 px-4 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white font-medium rounded-lg transition touch-manipulation"
           >
             Reset to Default
           </button>
         )}
       </div>
 
-      {/* Help Text */}
-      <div className="mt-6 p-3 bg-gray-800/50 rounded-lg">
+      {/* Help Text - hidden on mobile for space */}
+      <div className="mt-6 p-3 bg-gray-800/50 rounded-lg hidden md:block">
         <h4 className="text-xs font-medium text-gray-400 mb-2">Tips</h4>
         <ul className="text-xs text-gray-500 space-y-1">
           <li>• Drag to pan, scroll to zoom</li>

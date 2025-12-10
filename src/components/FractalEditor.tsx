@@ -19,6 +19,7 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
   const [params, setParams] = useState<FractalParams>(initialParams || DEFAULT_FRACTAL_PARAMS);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isControlsOpen, setIsControlsOpen] = useState(false);
 
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -156,14 +157,14 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
     params.animateJulia;
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950">
+    <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
       {/* Header */}
-      <header className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <Link href="/">
+      <header className="h-12 md:h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-3 md:px-4 flex-shrink-0">
+        <div className="flex items-center gap-2 md:gap-4">
+          <Link href="/" className="flex-shrink-0">
             <Logo />
           </Link>
-          <span className="text-gray-500 text-sm">
+          <span className="hidden sm:inline text-gray-500 text-sm">
             {params.type.charAt(0).toUpperCase() + params.type.slice(1)} Set
           </span>
           {isAnimating && (
@@ -173,17 +174,17 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {session ? (
             <>
               <Link
                 href="/gallery"
-                className="text-gray-400 hover:text-white text-sm transition"
+                className="hidden sm:inline text-gray-400 hover:text-white text-sm transition"
               >
                 My Fractals
               </Link>
-              <span className="text-gray-600">|</span>
-              <span className="text-gray-400 text-sm">{session.user?.email}</span>
+              <span className="hidden sm:inline text-gray-600">|</span>
+              <span className="hidden md:inline text-gray-400 text-sm">{session.user?.email}</span>
               <Link
                 href="/api/auth/signout"
                 className="text-gray-400 hover:text-white text-sm transition"
@@ -211,16 +212,16 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Canvas */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           <FractalCanvas
             params={params}
             onParamsChange={handleParamsChange}
           />
 
           {/* Status overlay */}
-          <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+          <div className="absolute bottom-20 md:bottom-4 left-4 flex flex-col gap-2">
             <div className="bg-gray-900/80 px-3 py-1 rounded-lg text-sm text-gray-300">
               Zoom: {params.zoom < 1000 ? params.zoom.toFixed(2) : params.zoom.toExponential(2)}x
             </div>
@@ -230,16 +231,56 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
               </div>
             )}
           </div>
+
+          {/* Mobile controls toggle button */}
+          <button
+            onClick={() => setIsControlsOpen(!isControlsOpen)}
+            className="md:hidden absolute bottom-4 right-4 w-14 h-14 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95 z-20"
+            aria-label="Toggle controls"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-6 h-6 text-white transition-transform ${isControlsOpen ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </button>
         </div>
 
-        {/* Controls Panel */}
-        <FractalControls
-          params={params}
-          onParamsChange={handleParamsChange}
-          onSave={session ? () => setIsSaveModalOpen(true) : undefined}
-          onReset={handleReset}
-          isSaving={isSaving}
-        />
+        {/* Controls Panel - Desktop: side panel, Mobile: bottom sheet */}
+        <div
+          className={`
+            md:relative md:flex-shrink-0
+            fixed md:static inset-x-0 bottom-0 md:inset-auto
+            transform transition-transform duration-300 ease-out
+            ${isControlsOpen ? "translate-y-0" : "translate-y-full md:translate-y-0"}
+            z-30 md:z-auto
+            max-h-[70vh] md:max-h-none
+          `}
+        >
+          {/* Mobile drag handle */}
+          <div className="md:hidden bg-gray-900 border-t border-gray-800 flex justify-center py-2">
+            <div className="w-12 h-1 bg-gray-700 rounded-full" />
+          </div>
+          <FractalControls
+            params={params}
+            onParamsChange={handleParamsChange}
+            onSave={session ? () => setIsSaveModalOpen(true) : undefined}
+            onReset={handleReset}
+            isSaving={isSaving}
+          />
+        </div>
+
+        {/* Mobile backdrop */}
+        {isControlsOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-20"
+            onClick={() => setIsControlsOpen(false)}
+          />
+        )}
       </div>
 
       {/* Save Modal */}

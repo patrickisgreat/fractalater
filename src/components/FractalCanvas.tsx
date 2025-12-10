@@ -253,6 +253,8 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef(Date.now());
+  const lastTouchDistanceRef = useRef<number | null>(null);
+  const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
 
   const fractalTypeToInt = (type: string): number => {
     const types: Record<string, number> = {
@@ -453,15 +455,95 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
     onParamsChange({ zoom: params.zoom * zoomFactor });
   };
 
+  // Touch handlers for mobile
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return null;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const getTouchCenter = (touches: React.TouchList) => {
+    if (touches.length < 2) {
+      return { x: touches[0].clientX, y: touches[0].clientY };
+    }
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touches = e.touches;
+
+    if (touches.length === 1) {
+      isDraggingRef.current = true;
+      lastTouchCenterRef.current = { x: touches[0].clientX, y: touches[0].clientY };
+    } else if (touches.length === 2) {
+      lastTouchDistanceRef.current = getTouchDistance(touches);
+      lastTouchCenterRef.current = getTouchCenter(touches);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const touches = e.touches;
+    const currentCenter = getTouchCenter(touches);
+
+    // Handle pinch zoom
+    if (touches.length === 2) {
+      const currentDistance = getTouchDistance(touches);
+      if (currentDistance && lastTouchDistanceRef.current) {
+        const zoomFactor = currentDistance / lastTouchDistanceRef.current;
+        onParamsChange({ zoom: params.zoom * zoomFactor });
+      }
+      lastTouchDistanceRef.current = currentDistance;
+    }
+
+    // Handle pan
+    if (lastTouchCenterRef.current) {
+      const dx = currentCenter.x - lastTouchCenterRef.current.x;
+      const dy = currentCenter.y - lastTouchCenterRef.current.y;
+
+      const scale = 2 / (Math.min(canvas.clientWidth, canvas.clientHeight) * params.zoom);
+
+      onParamsChange({
+        centerX: params.centerX - dx * scale,
+        centerY: params.centerY + dy * scale,
+      });
+    }
+
+    lastTouchCenterRef.current = currentCenter;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length === 0) {
+      isDraggingRef.current = false;
+      lastTouchDistanceRef.current = null;
+      lastTouchCenterRef.current = null;
+    } else if (e.touches.length === 1) {
+      lastTouchDistanceRef.current = null;
+      lastTouchCenterRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+
   return (
     <canvas
       ref={canvasRef}
-      className={`w-full h-full cursor-grab active:cursor-grabbing ${className || ""}`}
+      className={`w-full h-full cursor-grab active:cursor-grabbing touch-none ${className || ""}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     />
   );
 }
