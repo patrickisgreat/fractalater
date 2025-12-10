@@ -232,33 +232,38 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
             )}
           </div>
 
-          {/* Mobile controls toggle button */}
+        </div>
+
+        {/* Mobile controls toggle button - positioned fixed for visibility */}
+        {!isControlsOpen && (
           <button
-            onClick={() => setIsControlsOpen(!isControlsOpen)}
-            className="md:hidden absolute bottom-4 right-4 w-14 h-14 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95 z-20"
-            aria-label="Toggle controls"
+            onClick={() => setIsControlsOpen(true)}
+            className="md:hidden fixed bottom-6 right-4 w-16 h-16 bg-purple-600 hover:bg-purple-700 rounded-full shadow-2xl flex items-center justify-center transition-transform active:scale-95 z-40 border-2 border-purple-400"
+            aria-label="Open controls"
+            style={{ boxShadow: '0 0 20px rgba(147, 51, 234, 0.5)' }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`w-6 h-6 text-white transition-transform ${isControlsOpen ? "rotate-180" : ""}`}
+              className="w-7 h-7 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
-        </div>
+        )}
 
         {/* Controls Panel - Desktop: side panel, Mobile: bottom sheet */}
         <div
           className={`
-            md:relative md:flex-shrink-0
+            md:relative md:flex-shrink-0 md:h-full md:overflow-hidden
             fixed md:static inset-x-0 bottom-0 md:inset-auto
             transform transition-transform duration-300 ease-out
             ${isControlsOpen ? "translate-y-0" : "translate-y-full md:translate-y-0"}
             z-30 md:z-auto
-            max-h-[70vh] md:max-h-none
+            max-h-[70vh] md:max-h-full
           `}
         >
           {/* Mobile drag handle */}

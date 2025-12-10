@@ -76,7 +76,7 @@ export default function FractalControls({
   );
 
   return (
-    <div className="bg-gray-900 md:border-l border-gray-800 p-3 md:p-4 w-full md:w-80 overflow-y-auto max-h-[calc(70vh-2rem)] md:max-h-none">
+    <div className="bg-gray-900 md:border-l border-gray-800 p-3 md:p-4 w-full md:w-80 overflow-y-auto max-h-[calc(70vh-2rem)] md:max-h-full md:h-full">
       <h2 className="text-lg font-semibold text-white mb-4 hidden md:block">Fractal Controls</h2>
 
       {/* Fractal Type */}
