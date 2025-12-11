@@ -51,6 +51,9 @@ export interface FractalParams {
   autoPower: boolean;           // cycle power value
   autoPowerSpeed: number;
   globalAnimSpeed: number;      // master speed multiplier
+
+  // Performance
+  performanceMode: boolean;     // reduce resolution for smoother animation
 }
 
 export const DEFAULT_FRACTAL_PARAMS: FractalParams = {
@@ -86,6 +89,7 @@ export const DEFAULT_FRACTAL_PARAMS: FractalParams = {
   autoPower: false,
   autoPowerSpeed: 0.02,
   globalAnimSpeed: 1,
+  performanceMode: false,
 };
 
 export interface SavedFractal {
@@ -98,3 +102,74 @@ export interface SavedFractal {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Interesting deep zoom coordinates for Mandelbrot set
+export interface DeepZoomTarget {
+  name: string;
+  centerX: number;
+  centerY: number;
+  description: string;
+}
+
+export const DEEP_ZOOM_TARGETS: DeepZoomTarget[] = [
+  {
+    name: "Seahorse Valley",
+    centerX: -0.7463,
+    centerY: 0.1102,
+    description: "Famous seahorse-shaped spiral formations",
+  },
+  {
+    name: "Elephant Valley",
+    centerX: 0.275,
+    centerY: 0.0,
+    description: "Elephant trunk-like bulbs",
+  },
+  {
+    name: "Mini Mandelbrot",
+    centerX: -1.768778833,
+    centerY: -0.001738996,
+    description: "A tiny copy of the full set",
+  },
+  {
+    name: "Spiral Galaxy",
+    centerX: -0.745428,
+    centerY: 0.113009,
+    description: "Beautiful spiral patterns",
+  },
+  {
+    name: "Lightning",
+    centerX: -0.170337,
+    centerY: -1.0660699,
+    description: "Electric branch-like structures",
+  },
+  {
+    name: "Tendrils",
+    centerX: -0.235125,
+    centerY: 0.827215,
+    description: "Delicate tendril formations",
+  },
+  {
+    name: "Double Spiral",
+    centerX: -0.7436439,
+    centerY: 0.1318259,
+    description: "Twin spiral structures",
+  },
+  {
+    name: "Starfish",
+    centerX: -0.3750001200618655,
+    centerY: -0.6592316094481254,
+    description: "Five-armed starfish pattern",
+  },
+  {
+    name: "Deep Mini",
+    centerX: -1.9854300851907,
+    centerY: -0.00000013493,
+    description: "Very deep mini Mandelbrot",
+  },
+  {
+    name: "Dendrite",
+    centerX: -0.1011,
+    centerY: 0.9563,
+    description: "Tree-like branching patterns",
+  },
+];
