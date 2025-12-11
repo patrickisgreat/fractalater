@@ -9,6 +9,7 @@ interface FractalCanvasProps {
   params: FractalParams;
   onParamsChange: (params: Partial<FractalParams>) => void;
   className?: string;
+  onPerformanceDetected?: (isSlowDevice: boolean) => void;
 }
 
 // Detect if we're on a mobile device for performance optimization
@@ -20,9 +21,10 @@ const isMobileDevice = () => {
 
 // Resolution scale factors
 const INTERACTION_SCALE = 0.5;  // 50% resolution during interaction
-const PERFORMANCE_SCALE = 0.5;  // 50% resolution in performance mode
+const PERFORMANCE_SCALE = 0.25; // 25% resolution in performance mode (more aggressive)
 const FULL_SCALE = 1.0;         // 100% resolution when idle
 const REFINEMENT_DELAY = 150;   // ms to wait before rendering full quality
+const PERF_MAX_ITERATIONS = 100; // Max iterations in performance mode
 
 // Check if any animation is active
 const isAnimating = (params: FractalParams) => {
@@ -34,9 +36,9 @@ const isAnimating = (params: FractalParams) => {
          params.autoPower;
 };
 
-export default function FractalCanvas({ params, onParamsChange, className }: FractalCanvasProps) {
+export default function FractalCanvas({ params, onParamsChange, className, onPerformanceDetected }: FractalCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const glRef = useRef<WebGLRenderingContext | null>(null);
+  const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const isDraggingRef = useRef(false);
   const hasDraggedRef = useRef(false);
@@ -54,6 +56,12 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
   const refinementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInteractingRef = useRef(false);
   const renderRef = useRef<() => void>(() => {});
+
+  // Cached uniform locations for performance
+  const uniformsRef = useRef<Record<string, WebGLUniformLocation | null>>({});
+
+  // Performance detection
+  const hasRunBenchmarkRef = useRef(false);
 
   // Check for mobile on mount
   useEffect(() => {
@@ -83,18 +91,76 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
 
   // Calculate adaptive iterations based on zoom level for "infinite zoom" effect
   const getAdaptiveIterations = useCallback((baseIterations: number, zoom: number, performanceMode: boolean): number => {
+    // In performance mode, use fixed low iteration count for smooth animation
+    if (performanceMode) {
+      return PERF_MAX_ITERATIONS;
+    }
+
     // Increase iterations as we zoom in to maintain detail
-    // Every 10x zoom increase adds more iterations
     const zoomFactor = Math.log10(Math.max(zoom, 1));
     const adaptiveIterations = Math.floor(baseIterations * (1 + zoomFactor * 0.5));
 
-    // Cap iterations based on device capability and performance mode
-    let maxCap = isMobileRef.current ? 500 : 2000;
-    if (performanceMode) {
-      maxCap = Math.min(maxCap, 200); // Much lower cap in performance mode
-    }
+    // Cap iterations based on device capability
+    const maxCap = isMobileRef.current ? 500 : 2000;
     return Math.min(adaptiveIterations, maxCap);
   }, []);
+
+  // Run a quick GPU benchmark to detect slow hardware
+  const runBenchmark = useCallback(() => {
+    if (hasRunBenchmarkRef.current || !onPerformanceDetected) return;
+    hasRunBenchmarkRef.current = true;
+
+    const gl = glRef.current;
+    const program = programRef.current;
+    const canvas = canvasRef.current;
+    if (!gl || !program || !canvas) return;
+
+    // Render several frames and measure time
+    const BENCHMARK_FRAMES = 5;
+    const startTime = performance.now();
+
+    for (let i = 0; i < BENCHMARK_FRAMES; i++) {
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(program);
+
+      // Use test params that stress the GPU (high iterations at default zoom)
+      const u = uniformsRef.current;
+      gl.uniform2f(u.u_resolution, canvas.width, canvas.height);
+      gl.uniform2f(u.u_center, -0.5, 0.0);
+      gl.uniform1f(u.u_zoom, 1.0);
+      gl.uniform1i(u.u_maxIterations, 200);
+      gl.uniform1f(u.u_escapeRadius, 4.0);
+      gl.uniform1i(u.u_fractalType, 0);
+      gl.uniform1f(u.u_power, 2.0);
+      gl.uniform2f(u.u_julia, 0.0, 0.0);
+      gl.uniform1i(u.u_colorScheme, 0);
+      gl.uniform1i(u.u_coloringMethod, 1);
+      gl.uniform1f(u.u_colorOffset, 0.0);
+      gl.uniform1f(u.u_colorScale, 1.0);
+      gl.uniform1f(u.u_time, 0.0);
+      gl.uniform1f(u.u_colorCycleSpeed, 0.0);
+      gl.uniform1f(u.u_glowIntensity, 0.0);
+      gl.uniform1f(u.u_posterize, 1.0);
+      gl.uniform1f(u.u_hueShift, 0.0);
+      gl.uniform1f(u.u_saturation, 1.0);
+      gl.uniform1f(u.u_brightness, 1.0);
+      gl.uniform1f(u.u_stripeFrequency, 3.0);
+      gl.uniform1f(u.u_orbitTrapSize, 0.5);
+
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.finish(); // Force GPU to complete rendering
+    }
+
+    const endTime = performance.now();
+    const avgFrameTime = (endTime - startTime) / BENCHMARK_FRAMES;
+
+    // If average frame time > 33ms (less than 30fps), consider it slow
+    const isSlowDevice = avgFrameTime > 33;
+    console.log(`GPU benchmark: ${avgFrameTime.toFixed(2)}ms/frame - ${isSlowDevice ? 'slow' : 'fast'} device`);
+    onPerformanceDetected(isSlowDevice);
+  }, [onPerformanceDetected]);
 
   // Update canvas resolution based on scale factor
   const updateCanvasResolution = useCallback((scale: number) => {
@@ -179,14 +245,15 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
     const usePerformance = params.performanceMode && isAnimating(params);
     const effectiveIterations = getAdaptiveIterations(params.maxIterations, params.zoom, usePerformance);
 
-    // Set uniforms
-    gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), canvas.width, canvas.height);
-    gl.uniform2f(gl.getUniformLocation(program, "u_center"), params.centerX, params.centerY);
-    gl.uniform1f(gl.getUniformLocation(program, "u_zoom"), params.zoom);
-    gl.uniform1i(gl.getUniformLocation(program, "u_maxIterations"), effectiveIterations);
-    gl.uniform1f(gl.getUniformLocation(program, "u_escapeRadius"), params.escapeRadius);
-    gl.uniform1i(gl.getUniformLocation(program, "u_fractalType"), fractalTypeToInt(params.type));
-    gl.uniform1f(gl.getUniformLocation(program, "u_power"), params.power);
+    // Set uniforms using cached locations
+    const u = uniformsRef.current;
+    gl.uniform2f(u.u_resolution, canvas.width, canvas.height);
+    gl.uniform2f(u.u_center, params.centerX, params.centerY);
+    gl.uniform1f(u.u_zoom, params.zoom);
+    gl.uniform1i(u.u_maxIterations, effectiveIterations);
+    gl.uniform1f(u.u_escapeRadius, params.escapeRadius);
+    gl.uniform1i(u.u_fractalType, fractalTypeToInt(params.type));
+    gl.uniform1f(u.u_power, params.power);
 
     // Julia params - apply animation if enabled
     let juliaReal = params.juliaReal;
@@ -195,22 +262,22 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
       juliaReal = Math.sin(time * params.juliaAnimSpeed * 0.5) * 0.7;
       juliaImag = Math.cos(time * params.juliaAnimSpeed * 0.3) * 0.7;
     }
-    gl.uniform2f(gl.getUniformLocation(program, "u_julia"), juliaReal, juliaImag);
+    gl.uniform2f(u.u_julia, juliaReal, juliaImag);
 
     // Coloring
-    gl.uniform1i(gl.getUniformLocation(program, "u_colorScheme"), colorSchemeToInt(params.colorScheme));
-    gl.uniform1i(gl.getUniformLocation(program, "u_coloringMethod"), coloringMethodToInt(params.coloringMethod));
-    gl.uniform1f(gl.getUniformLocation(program, "u_colorOffset"), params.colorOffset);
-    gl.uniform1f(gl.getUniformLocation(program, "u_colorScale"), params.colorScale);
-    gl.uniform1f(gl.getUniformLocation(program, "u_time"), time);
-    gl.uniform1f(gl.getUniformLocation(program, "u_colorCycleSpeed"), params.colorCycleSpeed);
-    gl.uniform1f(gl.getUniformLocation(program, "u_glowIntensity"), params.glowIntensity);
-    gl.uniform1f(gl.getUniformLocation(program, "u_posterize"), params.posterize);
-    gl.uniform1f(gl.getUniformLocation(program, "u_hueShift"), params.hueShift);
-    gl.uniform1f(gl.getUniformLocation(program, "u_saturation"), params.saturation);
-    gl.uniform1f(gl.getUniformLocation(program, "u_brightness"), params.brightness);
-    gl.uniform1f(gl.getUniformLocation(program, "u_stripeFrequency"), params.stripeFrequency);
-    gl.uniform1f(gl.getUniformLocation(program, "u_orbitTrapSize"), params.orbitTrapSize);
+    gl.uniform1i(u.u_colorScheme, colorSchemeToInt(params.colorScheme));
+    gl.uniform1i(u.u_coloringMethod, coloringMethodToInt(params.coloringMethod));
+    gl.uniform1f(u.u_colorOffset, params.colorOffset);
+    gl.uniform1f(u.u_colorScale, params.colorScale);
+    gl.uniform1f(u.u_time, time);
+    gl.uniform1f(u.u_colorCycleSpeed, params.colorCycleSpeed);
+    gl.uniform1f(u.u_glowIntensity, params.glowIntensity);
+    gl.uniform1f(u.u_posterize, params.posterize);
+    gl.uniform1f(u.u_hueShift, params.hueShift);
+    gl.uniform1f(u.u_saturation, params.saturation);
+    gl.uniform1f(u.u_brightness, params.brightness);
+    gl.uniform1f(u.u_stripeFrequency, params.stripeFrequency);
+    gl.uniform1f(u.u_orbitTrapSize, params.orbitTrapSize);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -227,9 +294,9 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl2");
     if (!gl) {
-      console.error("WebGL not supported");
+      console.error("WebGL 2 not supported");
       return;
     }
     glRef.current = gl;
@@ -266,6 +333,18 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
 
     programRef.current = program;
 
+    // Cache all uniform locations for performance
+    const uniforms = [
+      "u_resolution", "u_center", "u_zoom", "u_maxIterations", "u_escapeRadius",
+      "u_fractalType", "u_power", "u_julia", "u_colorScheme", "u_coloringMethod",
+      "u_colorOffset", "u_colorScale", "u_time", "u_colorCycleSpeed",
+      "u_glowIntensity", "u_posterize", "u_hueShift", "u_saturation",
+      "u_brightness", "u_stripeFrequency", "u_orbitTrapSize"
+    ];
+    uniforms.forEach(name => {
+      uniformsRef.current[name] = gl.getUniformLocation(program, name);
+    });
+
     // Create fullscreen quad
     const positions = new Float32Array([
       -1, -1,
@@ -283,7 +362,10 @@ export default function FractalCanvas({ params, onParamsChange, className }: Fra
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
     render();
-  }, [render]);
+
+    // Run benchmark after a short delay to let the initial render complete
+    setTimeout(runBenchmark, 100);
+  }, [render, runBenchmark]);
 
   useEffect(() => {
     // Cancel any existing animation

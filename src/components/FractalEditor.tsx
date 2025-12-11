@@ -40,6 +40,13 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
     setParams(DEFAULT_FRACTAL_PARAMS);
   }, []);
 
+  // Auto-enable performance mode on slow devices
+  const handlePerformanceDetected = useCallback((isSlowDevice: boolean) => {
+    if (isSlowDevice) {
+      setParams((prev) => ({ ...prev, performanceMode: true }));
+    }
+  }, []);
+
   // Auto-animation loop
   useEffect(() => {
     const hasAnimation =
@@ -256,6 +263,7 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
           <FractalCanvas
             params={params}
             onParamsChange={handleParamsChange}
+            onPerformanceDetected={handlePerformanceDetected}
           />
 
           {/* Status overlay */}

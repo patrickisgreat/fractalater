@@ -1,4 +1,7 @@
+#version 300 es
 precision highp float;
+
+out vec4 fragColor;
 
 // ============================================================================
 // UNIFORMS
@@ -97,29 +100,72 @@ vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
   return a + b * cos(6.28318 * (c * t + d));
 }
 
+// Palette parameters for each color scheme: [a, b, c, d]
+// Schemes 4 (Rainbow), 5 (Monochrome), 7 (Neon) have special handling
+const vec3 PALETTE_A[9] = vec3[9](
+  vec3(0.5),              // 0: Classic
+  vec3(0.5),              // 1: Smooth
+  vec3(0.5, 0.2, 0.0),    // 2: Fire
+  vec3(0.0, 0.2, 0.4),    // 3: Ocean
+  vec3(0.0),              // 4: Rainbow (unused)
+  vec3(0.0),              // 5: Monochrome (unused)
+  vec3(0.5),              // 6: Psychedelic
+  vec3(0.5),              // 7: Neon
+  vec3(0.8)               // 8: Pastel
+);
+
+const vec3 PALETTE_B[9] = vec3[9](
+  vec3(0.5),              // 0: Classic
+  vec3(0.5),              // 1: Smooth
+  vec3(0.5, 0.4, 0.2),    // 2: Fire
+  vec3(0.0, 0.4, 0.5),    // 3: Ocean
+  vec3(0.0),              // 4: Rainbow (unused)
+  vec3(0.0),              // 5: Monochrome (unused)
+  vec3(0.5),              // 6: Psychedelic
+  vec3(0.5),              // 7: Neon
+  vec3(0.2)               // 8: Pastel
+);
+
+const vec3 PALETTE_C[9] = vec3[9](
+  vec3(1.0),              // 0: Classic
+  vec3(1.0),              // 1: Smooth
+  vec3(1.0, 0.8, 0.4),    // 2: Fire
+  vec3(0.0, 0.6, 0.8),    // 3: Ocean
+  vec3(0.0),              // 4: Rainbow (unused)
+  vec3(0.0),              // 5: Monochrome (unused)
+  vec3(2.0, 1.0, 0.0),    // 6: Psychedelic
+  vec3(1.0),              // 7: Neon
+  vec3(1.0)               // 8: Pastel
+);
+
+const vec3 PALETTE_D[9] = vec3[9](
+  vec3(0.0, 0.1, 0.2),    // 0: Classic
+  vec3(0.0, 0.33, 0.67),  // 1: Smooth
+  vec3(0.0, 0.1, 0.2),    // 2: Fire
+  vec3(0.0, 0.1, 0.3),    // 3: Ocean
+  vec3(0.0),              // 4: Rainbow (unused)
+  vec3(0.0),              // 5: Monochrome (unused)
+  vec3(0.5, 0.2, 0.25),   // 6: Psychedelic
+  vec3(0.0, 0.1, 0.2),    // 7: Neon
+  vec3(0.0, 0.33, 0.67)   // 8: Pastel
+);
+
 vec3 getColorScheme(float t, int scheme) {
   t = fract(t);
 
-  if (scheme == 0) { // Classic
-    return palette(t, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.0, 0.1, 0.2));
-  } else if (scheme == 1) { // Smooth
-    return palette(t, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.0, 0.33, 0.67));
-  } else if (scheme == 2) { // Fire
-    return palette(t, vec3(0.5, 0.2, 0.0), vec3(0.5, 0.4, 0.2), vec3(1.0, 0.8, 0.4), vec3(0.0, 0.1, 0.2));
-  } else if (scheme == 3) { // Ocean
-    return palette(t, vec3(0.0, 0.2, 0.4), vec3(0.0, 0.4, 0.5), vec3(0.0, 0.6, 0.8), vec3(0.0, 0.1, 0.3));
-  } else if (scheme == 4) { // Rainbow
-    return hsv2rgb(vec3(t, 0.85, 0.95));
-  } else if (scheme == 5) { // Monochrome
-    return vec3(t);
-  } else if (scheme == 6) { // Psychedelic
-    return palette(t, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.2, 0.25));
-  } else if (scheme == 7) { // Neon
-    vec3 col = palette(t, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.0, 0.1, 0.2));
-    return pow(col, vec3(0.5)) * 1.5;
-  } else { // Pastel
-    return palette(t, vec3(0.8), vec3(0.2), vec3(1.0), vec3(0.0, 0.33, 0.67));
-  }
+  // Special cases that don't use standard palette
+  if (scheme == 4) return hsv2rgb(vec3(t, 0.85, 0.95));  // Rainbow
+  if (scheme == 5) return vec3(t);                        // Monochrome
+
+  // Clamp scheme to valid range for array access
+  int idx = clamp(scheme, 0, 8);
+
+  vec3 col = palette(t, PALETTE_A[idx], PALETTE_B[idx], PALETTE_C[idx], PALETTE_D[idx]);
+
+  // Neon gets extra brightness boost
+  if (scheme == 7) col = pow(col, vec3(0.5)) * 1.5;
+
+  return col;
 }
 
 // ============================================================================
@@ -227,18 +273,19 @@ float calculateColorValue(
   }
 
   // Standard coloring methods
-  if (u_coloringMethod == 0) {
-    return calcEscapeTimeColor(iter, maxIter);
-  } else if (u_coloringMethod == 1) {
-    return calcSmoothColor(iter, maxIter, z);
-  } else if (u_coloringMethod == 2) {
-    return calcOrbitTrapColor(minDist);
-  } else if (u_coloringMethod == 3) {
-    return calcAngleColor(totalAngle, iter);
-  } else if (u_coloringMethod == 4) {
-    return calcStripeColor(stripe, iter);
-  } else {
-    return calcDomainColor(z);
+  switch (u_coloringMethod) {
+    case 0: // Escape Time
+      return calcEscapeTimeColor(iter, maxIter);
+    case 1: // Smooth
+      return calcSmoothColor(iter, maxIter, z);
+    case 2: // Orbit Trap
+      return calcOrbitTrapColor(minDist);
+    case 3: // Angle
+      return calcAngleColor(totalAngle, iter);
+    case 4: // Stripe
+      return calcStripeColor(stripe, iter);
+    default: // Domain
+      return calcDomainColor(z);
   }
 }
 
@@ -376,5 +423,5 @@ void main() {
   // Apply post-processing effects
   color = postProcess(color, iter, maxIter, colorVal);
 
-  gl_FragColor = vec4(color, 1.0);
+  fragColor = vec4(color, 1.0);
 }
