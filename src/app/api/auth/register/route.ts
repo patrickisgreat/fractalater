@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { sendVerificationEmail, isEmailConfigured } from "@/lib/email";
+import { headers } from "next/headers";
 
 export async function POST(request: Request) {
   try {
@@ -26,13 +29,50 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Create user (emailVerified will be null until verified)
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name: name || email.split("@")[0],
+        // If email is not configured, auto-verify the user
+        emailVerified: isEmailConfigured() ? null : new Date(),
       },
     });
+
+    // If email is configured, send verification email
+    if (isEmailConfigured()) {
+      // Generate verification token
+      const token = randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await prisma.verificationToken.create({
+        data: {
+          identifier: email,
+          token,
+          expires,
+        },
+      });
+
+      // Get the base URL from headers
+      const headersList = await headers();
+      const host = headersList.get("host") || "localhost:3000";
+      const protocol = headersList.get("x-forwarded-proto") || "http";
+      const baseUrl = `${protocol}://${host}`;
+
+      // Send verification email
+      await sendVerificationEmail(email, token, baseUrl);
+
+      return NextResponse.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        },
+        requiresVerification: true,
+        message: "Please check your email to verify your account",
+      });
+    }
 
     return NextResponse.json({
       user: {
@@ -40,6 +80,7 @@ export async function POST(request: Request) {
         email: user.email,
         name: user.name,
       },
+      requiresVerification: false,
     });
   } catch (error) {
     console.error("Registration error:", error);

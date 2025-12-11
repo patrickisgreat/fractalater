@@ -506,6 +506,26 @@ export default function FractalControls({
         <SectionHeader section="animation" title="Auto-Animate" />
         {expandedSections.has("animation") && (
           <div className="space-y-4">
+            {/* Performance Mode Toggle */}
+            <div className="p-3 bg-orange-900/20 rounded-lg border border-orange-800/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm text-orange-300 font-medium">Performance Mode</label>
+                  <p className="text-xs text-orange-400/70 mt-0.5">Lower resolution during animations</p>
+                </div>
+                <button
+                  onClick={() => onParamsChange({ performanceMode: !params.performanceMode })}
+                  className={`px-3 py-1 text-xs rounded-full transition ${
+                    params.performanceMode
+                      ? "bg-orange-600 text-white"
+                      : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                  }`}
+                >
+                  {params.performanceMode ? "ON" : "OFF"}
+                </button>
+              </div>
+            </div>
+
             {/* Global Speed */}
             <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-800/30">
               <div className="flex justify-between items-center text-sm mb-1">

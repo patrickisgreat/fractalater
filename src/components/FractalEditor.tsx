@@ -7,7 +7,7 @@ import FractalCanvas from "./FractalCanvas";
 import FractalControls from "./FractalControls";
 import SaveModal from "./SaveModal";
 import Logo from "./Logo";
-import { FractalParams, DEFAULT_FRACTAL_PARAMS } from "@/types/fractal";
+import { FractalParams, DEFAULT_FRACTAL_PARAMS, DEEP_ZOOM_TARGETS, DeepZoomTarget } from "@/types/fractal";
 
 interface FractalEditorProps {
   initialParams?: FractalParams;
@@ -23,6 +23,14 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
 
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const zoomTargetRef = useRef<DeepZoomTarget | null>(null);
+
+  // Select a random deep zoom target when auto-zoom starts
+  const selectZoomTarget = useCallback(() => {
+    const target = DEEP_ZOOM_TARGETS[Math.floor(Math.random() * DEEP_ZOOM_TARGETS.length)];
+    zoomTargetRef.current = target;
+    return target;
+  }, []);
 
   const handleParamsChange = useCallback((newParams: Partial<FractalParams>) => {
     setParams((prev) => ({ ...prev, ...newParams }));
@@ -30,6 +38,13 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
 
   const handleReset = useCallback(() => {
     setParams(DEFAULT_FRACTAL_PARAMS);
+  }, []);
+
+  // Auto-enable performance mode on slow devices
+  const handlePerformanceDetected = useCallback((isSlowDevice: boolean) => {
+    if (isSlowDevice) {
+      setParams((prev) => ({ ...prev, performanceMode: true }));
+    }
   }, []);
 
   // Auto-animation loop
@@ -63,10 +78,39 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
       setParams((prev) => {
         const updates: Partial<FractalParams> = {};
 
-        // Auto zoom - exponential growth/decay
+        // Auto zoom - exponential growth/decay with target seeking
         if (prev.autoZoom) {
           const zoomFactor = Math.exp(prev.autoZoomSpeed * speed * deltaTime);
           updates.zoom = prev.zoom * zoomFactor;
+
+          // When zooming in, move toward an interesting target
+          if (prev.autoZoomSpeed > 0 && prev.type === "mandelbrot") {
+            // Select target if not set
+            if (!zoomTargetRef.current) {
+              selectZoomTarget();
+            }
+
+            const target = zoomTargetRef.current;
+            if (target) {
+              // Calculate distance to target
+              const dx = target.centerX - prev.centerX;
+              const dy = target.centerY - prev.centerY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              // Move toward target - faster when zoomed out, slower when zoomed in
+              // This creates a smooth approach to the target
+              const moveSpeed = 0.5 * speed * deltaTime;
+              const moveFraction = Math.min(moveSpeed, distance * 0.1);
+
+              if (distance > 1e-14) { // Prevent jitter at extreme zooms
+                updates.centerX = prev.centerX + (dx / distance) * moveFraction;
+                updates.centerY = prev.centerY + (dy / distance) * moveFraction;
+              }
+            }
+          } else if (prev.autoZoomSpeed < 0) {
+            // Clear target when zooming out
+            zoomTargetRef.current = null;
+          }
         }
 
         // Auto rotate - move around current center in a circle
@@ -113,6 +157,7 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
     params.autoRotateSpeed,
     params.autoHueSpeed,
     params.autoPowerSpeed,
+    selectZoomTarget,
   ]);
 
   const handleSave = useCallback(
@@ -218,6 +263,7 @@ export default function FractalEditor({ initialParams, fractalId }: FractalEdito
           <FractalCanvas
             params={params}
             onParamsChange={handleParamsChange}
+            onPerformanceDetected={handlePerformanceDetected}
           />
 
           {/* Status overlay */}

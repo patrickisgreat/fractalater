@@ -1,2 +1,0 @@
-also when a user hits the reset to default button it should stop all animations if they're running. Also when I deploy this to digital ocean when a user signs up there needs to be like email confirm feature, and the email needs to work.. and would probably be good if they could like sign in with their logged in Google etc. 
-
